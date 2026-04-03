@@ -6,7 +6,7 @@ const api = axios.create({ baseURL: BASE_URL })
 
 // Attach JWT token to every request
 api.interceptors.request.use(config => {
-  const token = localStorage.getItem('token')
+  const token = sessionStorage.getItem('token')
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
@@ -16,6 +16,8 @@ api.interceptors.response.use(
   res => res,
   err => {
     if (err.response?.status === 401) {
+      sessionStorage.removeItem('token')
+      sessionStorage.removeItem('user')
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       window.location.href = '/login'
@@ -74,6 +76,7 @@ export const orderAPI = {
 // ── Users ─────────────────────────────────────────────────────────────────────
 export const userAPI = {
   getAll: (page = 0, size = 10) => api.get(`/admin/users?page=${page}&size=${size}`),
+  create: (data) => api.post('/admin/users', data),
   getById: (id) => api.get(`/admin/users/${id}`),
   delete: (id) => api.delete(`/admin/users/${id}`),
   toggleActive: (id) => api.patch(`/admin/users/${id}/toggle-active`),

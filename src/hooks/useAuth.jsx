@@ -5,7 +5,7 @@ const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('user')) } catch { return null }
+    try { return JSON.parse(sessionStorage.getItem('user')) } catch { return null }
   })
   const [loading, setLoading] = useState(false)
 
@@ -14,8 +14,8 @@ export function AuthProvider({ children }) {
     try {
       const { data } = await authAPI.login({ email, password })
       const { token, ...userData } = data.data
-      localStorage.setItem('token', token)
-      localStorage.setItem('user', JSON.stringify(userData))
+      sessionStorage.setItem('token', token)
+      sessionStorage.setItem('user', JSON.stringify(userData))
       setUser(userData)
       return { success: true }
     } catch (err) {
@@ -26,6 +26,8 @@ export function AuthProvider({ children }) {
   }
 
   const logout = () => {
+    sessionStorage.removeItem('token')
+    sessionStorage.removeItem('user')
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     setUser(null)

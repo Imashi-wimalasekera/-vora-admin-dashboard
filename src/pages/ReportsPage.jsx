@@ -13,17 +13,20 @@ const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov
 export default function ReportsPage() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [year, setYear] = useState(new Date().getFullYear())
 
   useEffect(() => {
     setLoading(true)
+    setError('')
     dashboardAPI.getSummary()
       .then(r => setData(r.data.data))
-      .catch(console.error)
+      .catch(() => setError('Unable to load reports data right now.'))
       .finally(() => setLoading(false))
   }, [year])
 
   if (loading) return <Spinner />
+  if (error) return <div className="card p-6 text-sm" style={{ color: 'var(--text-muted)' }}>{error}</div>
   if (!data) return null
 
   const monthlyData = Object.entries(data.monthlyRevenue || {}).map(([m, v]) => ({

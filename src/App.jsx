@@ -14,7 +14,7 @@ import ReportsPage from './pages/ReportsPage'
 import NotificationsPage from './pages/NotificationsPage'
 import SettingsPage from './pages/SettingsPage'
 
-const isAuthenticated = () => !!localStorage.getItem('token')
+const isAuthenticated = () => !!sessionStorage.getItem('token')
 
 function PrivateRoute({ children }) {
   return isAuthenticated() ? children : <Navigate to="/login" replace />

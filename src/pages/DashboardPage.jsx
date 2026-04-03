@@ -13,17 +13,24 @@ const PIE_COLORS = ['#4f8ef7','#34d399','#fbbf24','#f87171','#a78bfa','#fb923c',
 export default function DashboardPage() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     dashboardAPI.getSummary()
       .then(res => setData(res.data.data))
-      .catch(console.error)
+      .catch(() => setError('Unable to load dashboard data right now.'))
       .finally(() => setLoading(false))
   }, [])
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
       <Spinner size={32} />
+    </div>
+  )
+  if (error) return (
+    <div className="card p-6">
+      <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>Dashboard unavailable</p>
+      <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>{error}</p>
     </div>
   )
   if (!data) return null
