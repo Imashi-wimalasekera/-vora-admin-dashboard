@@ -1,14 +1,23 @@
 import { useState, useEffect } from 'react'
 import { userAPI } from '../services/api'
-import { Spinner } from '../components/ui'
+import { Modal, Spinner } from '../components/ui'
 import { formatDateTime } from '../utils/helpers'
 import toast from 'react-hot-toast'
-import { Trash2, ShieldCheck, ShieldOff, ToggleLeft, ToggleRight, X, Check } from 'lucide-react'
+import { Plus, Trash2, ShieldCheck, ShieldOff, ToggleLeft, ToggleRight, X, Check } from 'lucide-react'
 
 export default function UsersPage() {
-  const [users, setUsers]       = useState([])
-  const [loading, setLoading]   = useState(true)
+  const [users, setUsers] = useState([])
+  const [loading, setLoading] = useState(true)
   const [deleteId, setDeleteId] = useState(null)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    phone: '',
+    role: 'ROLE_USER',
+  })
 
   const fetchUsers = () => {
     setLoading(true)
@@ -19,6 +28,27 @@ export default function UsersPage() {
   }
 
   useEffect(() => { fetchUsers() }, [])
+
+  const openCreateModal = () => {
+    setForm({ name: '', email: '', password: '', phone: '', role: 'ROLE_USER' })
+    setShowCreateModal(true)
+  }
+
+  const handleCreateUser = async (e) => {
+    e.preventDefault()
+    setSaving(true)
+    try {
+      await userAPI.create(form)
+      toast.success(`Created ${form.role === 'ROLE_ADMIN' ? 'admin' : 'user'}`)
+      setShowCreateModal(false)
+      fetchUsers()
+    } catch (error) {
+      const message = error?.response?.data?.message || 'Failed to create user'
+      toast.error(message)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const handleDelete = async (id) => {
     try {
@@ -50,11 +80,16 @@ export default function UsersPage() {
 
   return (
     <div className="fade-in flex flex-col gap-6">
-      <div>
-        <h1 className="page-title">Users</h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-          {users.length} registered user{users.length !== 1 ? 's' : ''}
-        </p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="page-title">Users</h1>
+          <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+            {users.length} registered user{users.length !== 1 ? 's' : ''}
+          </p>
+        </div>
+        <button onClick={openCreateModal} className="btn-primary flex items-center gap-2 px-4 py-2 text-sm">
+          <Plus size={16} /> Add User
+        </button>
       </div>
 
       {loading ? <Spinner /> : (
@@ -147,6 +182,81 @@ export default function UsersPage() {
           </table>
         </div>
       )}
+
+      <Modal open={showCreateModal} onClose={() => setShowCreateModal(false)} title="Add User" width="max-w-xl">
+        <form onSubmit={handleCreateUser} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <label className="flex flex-col gap-1.5 sm:col-span-1">
+            <span className="label">Name</span>
+            <input
+              className="input"
+              value={form.name}
+              onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+              placeholder="Enter name"
+              required
+            />
+          </label>
+
+          <label className="flex flex-col gap-1.5 sm:col-span-1">
+            <span className="label">Email</span>
+            <input
+              type="email"
+              className="input"
+              value={form.email}
+              onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+              placeholder="Enter email"
+              required
+            />
+          </label>
+
+          <label className="flex flex-col gap-1.5 sm:col-span-1">
+            <span className="label">Password</span>
+            <input
+              type="password"
+              className="input"
+              value={form.password}
+              onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+              placeholder="Enter password"
+              required
+              minLength={6}
+            />
+          </label>
+
+          <label className="flex flex-col gap-1.5 sm:col-span-1">
+            <span className="label">Phone</span>
+            <input
+              className="input"
+              value={form.phone}
+              onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+              placeholder="Enter phone number"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1.5 sm:col-span-2">
+            <span className="label">Role</span>
+            <select
+              className="input"
+              value={form.role}
+              onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
+            >
+              <option value="ROLE_USER">User</option>
+              <option value="ROLE_ADMIN">Admin</option>
+            </select>
+          </label>
+
+          <div className="sm:col-span-2 flex items-center justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setShowCreateModal(false)}
+              className="btn-secondary px-4 py-2 text-sm"
+            >
+              Cancel
+            </button>
+            <button type="submit" className="btn-primary px-4 py-2 text-sm" disabled={saving}>
+              {saving ? 'Saving…' : 'Create User'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }

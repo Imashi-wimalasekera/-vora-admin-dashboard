@@ -76,6 +76,7 @@ export const orderAPI = {
 // ── Users ─────────────────────────────────────────────────────────────────────
 export const userAPI = {
   getAll: (page = 0, size = 10) => api.get(`/admin/users?page=${page}&size=${size}`),
+  create: (data) => api.post('/admin/users', data),
   getById: (id) => api.get(`/admin/users/${id}`),
   delete: (id) => api.delete(`/admin/users/${id}`),
   toggleActive: (id) => api.patch(`/admin/users/${id}/toggle-active`),
