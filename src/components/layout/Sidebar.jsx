@@ -30,11 +30,11 @@ export default function Sidebar() {
             É
           </div>
           <div>
-            <span className="font-bold text-base tracking-tight"
+            <span className="font-bold text-xl tracking-tight"
               style={{ color: '#fff', fontFamily: 'Playfair Display, serif' }}>
               Évora
             </span>
-            <span className="block text-xs"
+            <span className="block text-sm"
               style={{ color: 'rgba(255,255,255,0.45)', letterSpacing: '0.15em' }}>
               ADMIN
             </span>

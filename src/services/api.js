@@ -34,7 +34,7 @@ export const authAPI = {
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 export const dashboardAPI = {
-  getSummary: () => api.get('/admin/dashboard/summary'),
+  getSummary: () => api.get('/admin/dashboard'),
   getSalesReport: (year, month) => api.get(`/admin/dashboard/sales-report?year=${year}&month=${month}`),
 }
 
