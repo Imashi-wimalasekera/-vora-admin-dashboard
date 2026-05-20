@@ -87,9 +87,9 @@ export function Modal({ open, onClose, title, children, width = 'max-w-lg' }) {
         alignItems: 'center',
         justifyContent: 'center',
         padding: '1rem',
-        background: 'rgba(0, 0, 0, 0.45)',
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
+        background: 'rgba(0, 0, 0, 0.55)',
+        backdropFilter: 'blur(12px) saturate(120%)',
+        WebkitBackdropFilter: 'blur(12px) saturate(120%)',
       }}
     >
       {/* Click outside overlay */}
@@ -177,9 +177,9 @@ export function ConfirmDialog({ open, onClose, onConfirm, title, message }) {
         alignItems: 'center',
         justifyContent: 'center',
         padding: '1rem',
-        background: 'rgba(0,0,0,0.45)',
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
+        background: 'rgba(0,0,0,0.55)',
+        backdropFilter: 'blur(12px) saturate(120%)',
+        WebkitBackdropFilter: 'blur(12px) saturate(120%)',
       }}
     >
       <div style={{ position: 'absolute', inset: 0 }} onClick={onClose} />

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { couponAPI } from '../services/api'
-import { Spinner, Modal, FormField } from '../components/ui'
+import { Table, Modal, Spinner, FormField } from '../components/ui'
 import toast from 'react-hot-toast'
 
 const EMPTY_FORM = {

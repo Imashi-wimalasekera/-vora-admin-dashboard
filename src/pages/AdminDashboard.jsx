@@ -17,7 +17,10 @@ export default function DashboardPage() {
 
   useEffect(() => {
     dashboardAPI.getSummary()
-      .then(res => setData(res.data.data))
+      .then(res => {
+        const body = res?.data
+        setData(body?.data ?? body)
+      })
       .catch(() => setError('Unable to load dashboard data right now.'))
       .finally(() => setLoading(false))
   }, [])
