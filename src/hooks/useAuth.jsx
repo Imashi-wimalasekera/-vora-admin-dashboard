@@ -33,10 +33,18 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
+  const updateUser = (patch) => {
+    setUser(prev => {
+      const next = { ...(prev || {}), ...(patch || {}) }
+      sessionStorage.setItem('user', JSON.stringify(next))
+      return next
+    })
+  }
+
   const isAdmin = user?.roles?.includes('ROLE_ADMIN')
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, isAdmin }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, isAdmin, updateUser }}>
       {children}
     </AuthContext.Provider>
   )

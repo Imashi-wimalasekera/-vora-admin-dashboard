@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { categoryAPI } from '../services/api'
-import { Spinner } from '../components/ui'
+import { Modal, Spinner } from '../components/ui'
 import toast from 'react-hot-toast'
 import { Plus, Pencil, Trash2, X, Check, Tag } from 'lucide-react'
 
@@ -127,61 +127,65 @@ export default function CategoriesPage() {
         </div>
       )}
 
-      {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="card w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between p-6" style={{ borderBottom: '1px solid var(--border-light)' }}>
-              <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
-                {editItem ? 'Edit Category' : 'New Category'}
-              </h2>
-              <button onClick={() => setShowModal(false)}
-                className="transition-colors" style={{ color: 'var(--text-muted)' }}>
-                <X size={20} />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div>
-                <label className="label">Name *</label>
-                <input
-                  value={form.name}
-                  onChange={e => setForm({ ...form, name: e.target.value })}
-                  placeholder="Category name"
-                  className="input"
-                />
-              </div>
-              <div>
-                <label className="label">Description</label>
-                <textarea
-                  value={form.description}
-                  onChange={e => setForm({ ...form, description: e.target.value })}
-                  rows={3}
-                  placeholder="Optional description"
-                  className="input resize-none"
-                />
-              </div>
-              {editItem && (
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={form.isActive}
-                    onChange={e => setForm({ ...form, isActive: e.target.checked })}
-                    className="w-4 h-4" style={{ accentColor: 'var(--accent)' }} />
-                  <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Active</span>
-                </label>
-              )}
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowModal(false)}
-                  className="btn-secondary flex-1 py-2 text-sm">
-                  Cancel
-                </button>
-                <button type="submit" disabled={saving}
-                  className="btn-primary flex-1 py-2 text-sm font-medium disabled:opacity-50">
-                  {saving ? 'Saving…' : editItem ? 'Update' : 'Create'}
-                </button>
-              </div>
-            </form>
+      <Modal
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        title={editItem ? 'Edit Category' : 'New Category'}
+        width="max-w-xl"
+      >
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4">
+          <label className="flex flex-col gap-1.5">
+            <span className="label">Name *</span>
+            <input
+              value={form.name}
+              onChange={e => setForm({ ...form, name: e.target.value })}
+              placeholder="Category name"
+              className="input"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1.5">
+            <span className="label">Description</span>
+            <textarea
+              value={form.description}
+              onChange={e => setForm({ ...form, description: e.target.value })}
+              rows={4}
+              placeholder="Optional description"
+              className="input resize-none"
+            />
+          </label>
+
+          {editItem && (
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.isActive}
+                onChange={e => setForm({ ...form, isActive: e.target.checked })}
+                className="w-4 h-4"
+                style={{ accentColor: 'var(--accent)' }}
+              />
+              <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Active</span>
+            </label>
+          )}
+
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setShowModal(false)}
+              className="btn-secondary px-5 py-2 text-sm"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="btn-primary px-5 py-2 text-sm font-medium disabled:opacity-50"
+            >
+              {saving ? 'Saving…' : editItem ? 'Update Category' : 'Create Category'}
+            </button>
           </div>
-        </div>
-      )}
+        </form>
+      </Modal>
     </div>
   )
 }

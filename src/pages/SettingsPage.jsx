@@ -3,7 +3,7 @@ import toast from 'react-hot-toast'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../hooks/useTheme'
 import { Spinner } from '../components/ui'
-import { settingsAPI } from '../services/api'
+import { settingsAPI, userAPI } from '../services/api'
 
 const TABS = [
   { id: 'profile',   icon: '👤', label: 'Profile' },
@@ -22,6 +22,15 @@ const DEFAULT_SETTINGS = {
   address: '',
   lowStockThreshold: 10,
   orderPrefix: 'EVR-',
+  stripeSecretKey: '',
+  stripePublishableKey: '',
+  stripeWebhookSecret: '',
+  stripeTestMode: true,
+  theme: 'light',
+  density: 'comfortable',
+  animationsEnabled: true,
+  compactSidebar: false,
+  dateFormat: 'MMM DD, YYYY',
   notifyNewOrders: true,
   notifyPaymentUpdates: true,
   notifyLowStockAlerts: true,
@@ -68,20 +77,24 @@ function Toggle({ value, onChange }) {
 }
 
 // ── Profile Tab ────────────────────────────────────────────────────────────
-function ProfileTab({ user }) {
+function ProfileTab({ profile, onSave, saving }) {
   const [form, setForm] = useState({
-    name:  user?.name  || '',
-    email: user?.email || '',
+    name:  profile?.name  || '',
+    email: profile?.email || '',
     phone: '',
-    bio:   '',
   })
-  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    setForm({
+      name: profile?.name || '',
+      email: profile?.email || '',
+      phone: profile?.phone || '',
+    })
+  }, [profile])
 
   const save = async () => {
-    setSaving(true)
-    await new Promise(r => setTimeout(r, 800))
-    setSaving(false)
-    toast.success('Profile updated successfully')
+    if (!form.name.trim()) return toast.error('Name is required')
+    await onSave({ name: form.name.trim(), phone: form.phone || '' })
   }
 
   return (
@@ -109,17 +122,13 @@ function ProfileTab({ user }) {
 
         <Field label="Email">
           <input className="input" type="email" value={form.email}
-            onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
+            disabled
+            readOnly />
         </Field>
 
         <Field label="Phone">
           <input className="input" placeholder="+94 XX XXX XXXX" value={form.phone}
             onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
-        </Field>
-
-        <Field label="Bio">
-          <textarea className="input" rows={3} placeholder="Short bio…" value={form.bio}
-            onChange={e => setForm(f => ({ ...f, bio: e.target.value }))} />
         </Field>
 
         <div className="flex justify-end pt-1">
@@ -213,7 +222,7 @@ function StoreTab({ settings, setSettings, saveSettings, saving }) {
 }
 
 // ── Security Tab ───────────────────────────────────────────────────────────
-function SecurityTab() {
+function SecurityTab({ onChangePassword, changingPassword }) {
   const [pwd, setPwd] = useState({ current: '', next: '', confirm: '' })
   const [twoFA, setTwoFA] = useState(false)
   const [sessions] = useState([
@@ -221,17 +230,13 @@ function SecurityTab() {
     { device: 'Safari on iPhone',  location: 'Colombo, LK', time: '2 hours ago',  current: false },
     { device: 'Firefox on Mac',    location: 'Unknown',      time: '3 days ago',   current: false },
   ])
-  const [saving, setSaving] = useState(false)
 
   const savePassword = async () => {
     if (!pwd.current) return toast.error('Enter your current password')
     if (pwd.next.length < 6) return toast.error('New password must be at least 6 characters')
     if (pwd.next !== pwd.confirm) return toast.error('Passwords do not match')
-    setSaving(true)
-    await new Promise(r => setTimeout(r, 800))
-    setSaving(false)
+    await onChangePassword({ currentPassword: pwd.current, newPassword: pwd.next })
     setPwd({ current: '', next: '', confirm: '' })
-    toast.success('Password updated successfully')
   }
 
   return (
@@ -250,9 +255,9 @@ function SecurityTab() {
             onChange={e => setPwd(p => ({ ...p, confirm: e.target.value }))} />
         </Field>
         <div className="flex justify-end">
-          <button className="btn-primary flex items-center gap-2" onClick={savePassword} disabled={saving}>
-            {saving && <Spinner size={14} />}
-            {saving ? 'Updating…' : 'Update Password'}
+          <button className="btn-primary flex items-center gap-2" onClick={savePassword} disabled={changingPassword}>
+            {changingPassword && <Spinner size={14} />}
+            {changingPassword ? 'Updating…' : 'Update Password'}
           </button>
         </div>
       </Section>
@@ -311,18 +316,11 @@ function SecurityTab() {
 }
 
 // ── Payment Tab ────────────────────────────────────────────────────────────
-function PaymentTab() {
-  const [stripeKey, setStripeKey]     = useState('sk_test_••••••••••••••••••••••••')
-  const [publishKey, setPublishKey]   = useState('pk_test_••••••••••••••••••••••••')
-  const [webhookKey, setWebhookKey]   = useState('whsec_••••••••••••••••••••••••')
-  const [testMode, setTestMode]       = useState(true)
-  const [saving, setSaving]           = useState(false)
+function PaymentTab({ settings, setSettings, saveSettings, saving }) {
+  const form = settings || DEFAULT_SETTINGS
 
-  const save = async () => {
-    setSaving(true)
-    await new Promise(r => setTimeout(r, 800))
-    setSaving(false)
-    toast.success('Payment settings saved')
+  const updateField = (key, value) => {
+    setSettings(prev => ({ ...(prev || DEFAULT_SETTINGS), [key]: value }))
   }
 
   return (
@@ -338,27 +336,27 @@ function PaymentTab() {
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold px-2 py-1 rounded-full"
-              style={{ background: testMode ? 'rgba(212,137,26,0.1)' : 'rgba(42,157,107,0.1)',
-                       color: testMode ? 'var(--warning)' : 'var(--success)' }}>
-              {testMode ? 'TEST' : 'LIVE'}
+              style={{ background: form.stripeTestMode ? 'rgba(212,137,26,0.1)' : 'rgba(42,157,107,0.1)',
+                       color: form.stripeTestMode ? 'var(--warning)' : 'var(--success)' }}>
+              {form.stripeTestMode ? 'TEST' : 'LIVE'}
             </span>
-            <Toggle value={testMode} onChange={setTestMode} />
+            <Toggle value={form.stripeTestMode} onChange={value => updateField('stripeTestMode', value)} />
           </div>
         </div>
 
         <Field label="Secret Key">
-          <input className="input font-mono text-xs" type="password" value={stripeKey}
-            onChange={e => setStripeKey(e.target.value)} placeholder="sk_test_..." />
+          <input className="input font-mono text-xs" type="password" value={form.stripeSecretKey}
+            onChange={e => updateField('stripeSecretKey', e.target.value)} placeholder="sk_test_..." />
         </Field>
 
         <Field label="Publishable Key">
-          <input className="input font-mono text-xs" value={publishKey}
-            onChange={e => setPublishKey(e.target.value)} placeholder="pk_test_..." />
+          <input className="input font-mono text-xs" value={form.stripePublishableKey}
+            onChange={e => updateField('stripePublishableKey', e.target.value)} placeholder="pk_test_..." />
         </Field>
 
         <Field label="Webhook Secret">
-          <input className="input font-mono text-xs" type="password" value={webhookKey}
-            onChange={e => setWebhookKey(e.target.value)} placeholder="whsec_..." />
+          <input className="input font-mono text-xs" type="password" value={form.stripeWebhookSecret}
+            onChange={e => updateField('stripeWebhookSecret', e.target.value)} placeholder="whsec_..." />
           <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
             Webhook endpoint: <span className="font-mono" style={{ color: 'var(--teal)' }}>
               /api/payments/webhook
@@ -367,7 +365,7 @@ function PaymentTab() {
         </Field>
 
         <div className="flex justify-end">
-          <button className="btn-primary flex items-center gap-2" onClick={save} disabled={saving}>
+          <button className="btn-primary flex items-center gap-2" onClick={saveSettings} disabled={saving}>
             {saving && <Spinner size={14} />}
             {saving ? 'Saving…' : 'Save Keys'}
           </button>
@@ -403,15 +401,15 @@ function PaymentTab() {
 }
 
 // ── Appearance Tab ─────────────────────────────────────────────────────────
-function AppearanceTab() {
-  const { theme, setTheme } = useTheme()
-  const [density, setDensity]         = useState('comfortable')
-  const [animations, setAnimations]   = useState(true)
-  const [compactSidebar, setCompact]  = useState(false)
-  const [dateFormat, setDateFormat]   = useState('MMM DD, YYYY')
+function AppearanceTab({ settings, setSettings, saveSettings, saving, theme, setTheme }) {
+  const form = settings || DEFAULT_SETTINGS
 
-  const saveAppearance = () => {
-    toast.success('Appearance settings saved')
+  const updateField = (key, value) => {
+    setSettings(prev => ({ ...(prev || DEFAULT_SETTINGS), [key]: value }))
+  }
+
+  const saveAppearance = async () => {
+    await saveSettings()
   }
 
   return (
@@ -427,7 +425,10 @@ function AppearanceTab() {
               style={{
                 borderColor: t.id === theme ? 'var(--teal)' : 'var(--border)',
               }}
-              onClick={() => setTheme(t.id)}>
+              onClick={() => {
+                setTheme(t.id)
+                updateField('theme', t.id)
+              }}>
               <div className="flex gap-1 mb-3">
                 {t.preview.map((c, i) => (
                   <div key={i} className="w-5 h-5 rounded-md" style={{ background: c }} />
@@ -448,9 +449,9 @@ function AppearanceTab() {
         <Field label="Table Density">
           <div className="flex gap-2">
             {['compact','comfortable','spacious'].map(d => (
-              <button key={d} onClick={() => setDensity(d)}
+              <button key={d} onClick={() => updateField('density', d)}
                 className="px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-all"
-                style={density === d
+                style={form.density === d
                   ? { background: 'var(--teal)', color: '#fff' }
                   : { background: 'var(--bg-primary)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
                 {d}
@@ -461,18 +462,18 @@ function AppearanceTab() {
 
         <Field label="Animations">
           <div className="flex items-center gap-3">
-            <Toggle value={animations} onChange={setAnimations} />
+            <Toggle value={form.animationsEnabled} onChange={value => updateField('animationsEnabled', value)} />
             <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              {animations ? 'Enabled' : 'Disabled'}
+              {form.animationsEnabled ? 'Enabled' : 'Disabled'}
             </span>
           </div>
         </Field>
 
         <Field label="Compact Sidebar">
           <div className="flex items-center gap-3">
-            <Toggle value={compactSidebar} onChange={setCompact} />
+            <Toggle value={form.compactSidebar} onChange={value => updateField('compactSidebar', value)} />
             <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              {compactSidebar ? 'Icons only' : 'Show labels'}
+              {form.compactSidebar ? 'Icons only' : 'Show labels'}
             </span>
           </div>
         </Field>
@@ -480,8 +481,8 @@ function AppearanceTab() {
 
       <Section title="Date & Time">
         <Field label="Date Format">
-          <select className="input" value={dateFormat}
-            onChange={e => setDateFormat(e.target.value)}>
+          <select className="input" value={form.dateFormat}
+            onChange={e => updateField('dateFormat', e.target.value)}>
             <option>MMM DD, YYYY</option>
             <option>DD/MM/YYYY</option>
             <option>MM/DD/YYYY</option>
@@ -491,8 +492,8 @@ function AppearanceTab() {
       </Section>
 
       <div className="flex justify-end">
-        <button className="btn-primary" onClick={saveAppearance}>
-          Save Preferences
+        <button className="btn-primary" onClick={saveAppearance} disabled={saving}>
+          {saving ? 'Saving…' : 'Save Preferences'}
         </button>
       </div>
     </div>
@@ -501,17 +502,24 @@ function AppearanceTab() {
 
 // ── Main Settings Page ─────────────────────────────────────────────────────
 export default function SettingsPage() {
-  const { user }  = useAuth()
+  const { user, updateUser }  = useAuth()
+  const { theme, setTheme } = useTheme()
   const [tab, setTab] = useState('profile')
+  const [profile, setProfile] = useState(null)
+  const [profileLoading, setProfileLoading] = useState(true)
+  const [profileSaving, setProfileSaving] = useState(false)
+  const [passwordSaving, setPasswordSaving] = useState(false)
   const [settings, setSettings] = useState(null)
   const [settingsLoading, setSettingsLoading] = useState(true)
   const [settingsSaving, setSettingsSaving] = useState(false)
 
   useEffect(() => {
-    const load = async () => {
+    const loadSettings = async () => {
       try {
         const { data } = await settingsAPI.get()
-        setSettings(data.data)
+        const loaded = data.data
+        setSettings(loaded)
+        if (loaded?.theme) setTheme(loaded.theme)
       } catch {
         toast.error('Failed to load settings')
         setSettings(DEFAULT_SETTINGS)
@@ -519,8 +527,53 @@ export default function SettingsPage() {
         setSettingsLoading(false)
       }
     }
-    load()
+
+    const loadProfile = async () => {
+      const fallbackProfile = {
+        name: user?.name || '',
+        email: user?.email || '',
+        phone: '',
+      }
+
+      try {
+        const { data } = await userAPI.getMe()
+        setProfile(data.data)
+      } catch {
+        setProfile(fallbackProfile)
+      } finally {
+        setProfileLoading(false)
+      }
+    }
+
+    loadSettings()
+    loadProfile()
   }, [])
+
+  const saveProfile = async (payload) => {
+    setProfileSaving(true)
+    try {
+      const { data } = await userAPI.updateMe(payload)
+      setProfile(data.data)
+      updateUser({ name: data.data.name, email: data.data.email })
+      toast.success('Profile updated successfully')
+    } catch (error) {
+      toast.error(error?.response?.data?.message || 'Failed to update profile')
+    } finally {
+      setProfileSaving(false)
+    }
+  }
+
+  const changePassword = async (payload) => {
+    setPasswordSaving(true)
+    try {
+      await userAPI.changeMyPassword(payload)
+      toast.success('Password updated successfully')
+    } catch (error) {
+      toast.error(error?.response?.data?.message || 'Failed to update password')
+    } finally {
+      setPasswordSaving(false)
+    }
+  }
 
   const saveSettings = async () => {
     setSettingsSaving(true)
@@ -528,6 +581,7 @@ export default function SettingsPage() {
       const payload = settings || DEFAULT_SETTINGS
       const { data } = await settingsAPI.update(payload)
       setSettings(data.data)
+      if (data.data?.theme) setTheme(data.data.theme)
       toast.success('Store settings saved')
     } catch {
       toast.error('Failed to save settings')
@@ -537,16 +591,34 @@ export default function SettingsPage() {
   }
 
   const TAB_CONTENT = {
-    profile:    <ProfileTab user={user} />,
+    profile:    profileLoading
+                  ? <div className="card p-6 text-sm" style={{ color: 'var(--text-muted)' }}>Loading profile...</div>
+                  : <ProfileTab
+                      profile={profile || { name: user?.name || '', email: user?.email || '', phone: '' }}
+                      onSave={saveProfile}
+                      saving={profileSaving}
+                    />,
     store:      <StoreTab
                   settings={settings || DEFAULT_SETTINGS}
                   setSettings={setSettings}
                   saveSettings={saveSettings}
                   saving={settingsSaving}
                 />,
-    security:   <SecurityTab />,
-    payment:    <PaymentTab />,
-    appearance: <AppearanceTab />,
+    security:   <SecurityTab onChangePassword={changePassword} changingPassword={passwordSaving} />,
+    payment:    <PaymentTab
+                  settings={settings || DEFAULT_SETTINGS}
+                  setSettings={setSettings}
+                  saveSettings={saveSettings}
+                  saving={settingsSaving}
+                />,
+    appearance: <AppearanceTab
+                  settings={settings || DEFAULT_SETTINGS}
+                  setSettings={setSettings}
+                  saveSettings={saveSettings}
+                  saving={settingsSaving}
+                  theme={theme}
+                  setTheme={setTheme}
+                />,
   }
 
   return (
